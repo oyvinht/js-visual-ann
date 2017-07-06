@@ -16,22 +16,31 @@ VisualANN.view = (function () {
     paint = function (network, canvas) {
 	var neurons = network.neurons,
 	    synapses = network.synapses,
-	    radius = Math.sqrt(
-		(((canvas.height * canvas.width) / neurons.length) / 2)
-		    / Math.PI),
+	    radius = Math.sqrt(((
+		(canvas.height * canvas.width) / neurons.length) / 2)
+			       / Math.PI),
 	    margin = radius * 0.3,
 	    ctx = canvas.getContext('2d'),
-	    lastPos= {x: 0, y: 0},
-	    getNextPos = function (lastPos) {
-		if (lastPos.x == 0 && lastPos.y == 0) {
+	    lastPos = {x: 0, y: 0},
+	    getNextPos = function (pos) {
+		if (pos.x == 0 && pos.y == 0) {
 		    return { x: radius, y: radius };
 		} else {
-		    if (lastPos.x + 3 * radius > canvas.width) {
-			return { x: radius, y: lastPos.y + 2 * radius };
-		    } else if (lastPos.y + 2 * radius > canvas.height) {
-			console.log('TODO');
+		    if (pos.x + 3 * radius > canvas.width) {
+			return {
+			    x: radius,
+			    y: pos.y + 2 * radius
+			};
+		    } else if (pos.y + 2 * radius > canvas.height) {
+			return {
+			    x: pos.x + 2 * radius,
+			    y: radius
+			};
 		    } else {
-			return { x: lastPos.x + 2 * radius, y: lastPos.y }
+			return {
+			    x: pos.x,
+			    y: pos.y + 2 * radius
+			};
 		    }
 		}
 	    };
@@ -50,6 +59,7 @@ VisualANN.view = (function () {
 	    ctx.beginPath();
 	    ctx.moveTo(from.x, from.y);
 	    ctx.lineTo(to.x, to.y);
+	    ctx.save();
 	    ctx.lineWidth = Math.abs(strength) / 2
 	    if (strength < 0) {
 		ctx.setLineDash([4, 4]);
@@ -57,8 +67,7 @@ VisualANN.view = (function () {
 	    }
 	    ctx.strokeStyle = '#808080';
 	    ctx.stroke();
-	    ctx.lineWidth = 1;
-	    ctx.setLineDash([]);
+	    ctx.restore();
 	}
 	// Draw neurons
 	for (n in neurons) {
