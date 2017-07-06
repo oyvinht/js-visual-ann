@@ -2,16 +2,40 @@ var VisualANN = (function () {
     var
     /**
      * @param {Object} network - The network to activate.
-     * @param {Object} - A new network with updated activation
-     
-    activate = function (network) {
-	var currentActivations = [],
-	    i;
-	for (i = 0, i < network.neurons.length; 
-	for (n in network) {
-	    currentActivations.push(network[n].currentActivation);
+     * @param {Object} inputs - An array of activations per input neuron.
+     * @param {Object} - A network with updated neuron activations.
+     */
+    activate = function (network, inputs) {
+	var newNetwork = makeNetwork(),
+	    sumInput = function (neuron) {
+		var syn,
+		    input,
+		    inputSum = 0;
+		// See if it is among inputs
+		for (input in inputs) {
+		    if (inputs[input].neuron === neuron) {
+			return inputs[input].activation;
+		    }
+		}
+		// ... otherwise, activate based on other neurons.
+		for (s in network.synapses) {
+		    syn = network.synapses[s];
+		    if (syn.to === neuron) {
+			inputSum += syn.from.currentActivation
+			    * syn.strength;
+		    }
+		}
+		console.log('' + neuron.name + ' ' + inputSum);
+		return inputSum;
+	    },
+	    n;
+	// Create neurons with updated activation.
+	for (i in network.neurons) {
+	    n = network.neurons[i];
+	    newNetwork = addNeuron(newNetwork, n.activate(sumInput(n)));
 	}
-    },*/
+	return newNetwork;
+    },
     /**
      * @param {Object} network - A network to extend.
      * @param {Object} neuron - A neuron to add.
@@ -47,15 +71,19 @@ var VisualANN = (function () {
 	return { neurons: [], synapses: [] }
     },
     /**
-     * @param {number} activationfunction - a function that calculates
+     * @param {Function} activationfunction - 
      * neuron activation level given the sum of inputs.
-     * @param {string} name - a name to display in the gui.
-     * @returns {object} a neuron that can be used in a network.
+     * @param {string} name - A name to display in the gui.
+     * @returns {object} A neuron that can be used in a network.
      */
-    makeNeuron = function (activationfunction, name) {
+    makeNeuron = function (activationFunction, name) {
 	return {
-	    activate: activationfunction,
-	    currentactivation: 0,
+	    activate: function (inputSum) {
+		var n = makeNeuron(activationFunction, name);
+		n.currentActivation = activationFunction(inputSum);
+		return n;
+	    },
+	    currentActivation: 0,
 	    name: name
 	};
     },
@@ -70,17 +98,6 @@ var VisualANN = (function () {
 	    strength: strength,
 	    to: toNeuron
 	};
-    },
-    nextActivation = function (neuron) {
-	var inputSum = 0,
-	    syn;
-	for (s in synapses) {
-	    syn = synapse[s];
-	    if (syn.to === neuron) {
-		inputSum += syn.from.currentActivation * syn.strength;
-	    }
-	}
-	return neuron.activate(inputSum);
     },
     /**
      * @param {Object} network - The network to draw onto a canvas.
@@ -102,7 +119,7 @@ var VisualANN = (function () {
 		    if (lastPos.x + 3 * radius > canvas.width) {
 			return { x: radius, y: lastPos.y + 2 * radius };
 		    } else if (lastPos.y + 2 * radius > canvas.height) {
-			console.log('a');
+			console.log('TODO');
 		    } else {
 			return { x: lastPos.x + 2 * radius, y: lastPos.y }
 		    }
@@ -120,11 +137,13 @@ var VisualANN = (function () {
 	    ctx.beginPath();
 	    ctx.moveTo(from.x, from.y);
 	    ctx.lineTo(to.x, to.y);
+	    ctx.strokeStyle = '#808080';
 	    ctx.stroke();
 	}
 	// Draw neurons
 	for (n in neurons) {
-	    var pos = neurons[n].pos,
+	    var activation = neurons[n].currentActivation,
+		pos = neurons[n].pos,
 		name = neurons[n].name,
 		fillGrad = ctx.createRadialGradient(
 		    pos.x - margin, pos.y - margin , (radius - margin) / 4,
@@ -135,17 +154,29 @@ var VisualANN = (function () {
 	    ctx.fillStyle = fillGrad;
 	    ctx.arc(pos.x, pos.y, radius - margin, 0, Math.PI * 2, true);
 	    ctx.fill();
+	    ctx.strokeStyle = '#a0a0a0';
 	    ctx.stroke();
 	    // Names
 	    if (name) {
-		ctx.fillStyle = 'black';
+		ctx.fillStyle = '#606060';
 		ctx.font = '16px Hack';
 		ctx.fillText(name, pos.x - radius / 3, pos.y + radius / 2);
 	    }
 	    // Current activation
-	    console.log(neurons[n].currentActivation);
+	    ctx.fillStyle = '#60a060';
+	    ctx.fillRect(pos.x + radius / 3,
+			 pos.y - activation * radius / 2 + radius / 3,
+			 radius / 10,
+			 activation * (radius / 2));
+	    ctx.beginPath();
+	    ctx.strokeStyle = '#606060';
+	    ctx.rect(pos.x + radius / 3,
+		     pos.y - radius / 6,
+		     radius / 10,
+		     radius / 2);
+	    ctx.stroke();
 	}
-
+	
     },
     SIGMOID_ACTIVATION = function (inputSum) {
 	return 1 / (1 + Math.exp(- inputSum));
@@ -154,6 +185,7 @@ var VisualANN = (function () {
      * Things to export.
      */
     return {
+	activate: activate,
 	addNeuron: addNeuron,
 	addSynapse: addSynapse,
 	makeCanvas: makeCanvas,
