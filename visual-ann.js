@@ -25,14 +25,32 @@ var VisualANN = (function () {
 			    * syn.strength;
 		    }
 		}
-		console.log('' + neuron.name + ' ' + inputSum);
 		return inputSum;
 	    },
-	    n;
+	    n,
+	    s,
+	    from,
+	    findNeuronFromSource = function (source) {
+		for (i in newNetwork.neurons) {
+		    if (newNetwork.neurons[i].source === source) {
+			return newNetwork.neurons[i];
+		    }
+		}
+		return null;
+	    },
+	    to;
 	// Create neurons with updated activation.
 	for (i in network.neurons) {
 	    n = network.neurons[i];
 	    newNetwork = addNeuron(newNetwork, n.activate(sumInput(n)));
+	}
+	// Create synapses
+	for (i in network.synapses) {
+	    s = network.synapses[i];
+	    from = findNeuronFromSource(s.from);
+	    to = findNeuronFromSource(s.to);
+	    newNetwork = addSynapse(
+		newNetwork, makeSynapse(from, to, s.strength));
 	}
 	return newNetwork;
     },
@@ -81,6 +99,8 @@ var VisualANN = (function () {
 	    activate: function (inputSum) {
 		var n = makeNeuron(activationFunction, name);
 		n.currentActivation = activationFunction(inputSum);
+		console.log(n.currentActivation);
+		n.source = this;
 		return n;
 	    },
 	    currentActivation: 0,
@@ -133,21 +153,37 @@ var VisualANN = (function () {
 	// Draw synapses
 	for (s in synapses) {
 	    var from = synapses[s].from.pos,
-		to = synapses[s].to.pos;
+		to = synapses[s].to.pos,
+		strength = synapses[s].strength;
 	    ctx.beginPath();
 	    ctx.moveTo(from.x, from.y);
 	    ctx.lineTo(to.x, to.y);
+	    ctx.lineWidth = Math.abs(strength) / 2
+	    if (strength < 0) {
+		ctx.setLineDash([4, 4]);
+		ctx.lineDashOffset = 20;
+	    }
 	    ctx.strokeStyle = '#808080';
 	    ctx.stroke();
+	    ctx.lineWidth = 1;
+	    ctx.setLineDash([]);
 	}
 	// Draw neurons
 	for (n in neurons) {
 	    var activation = neurons[n].currentActivation,
 		pos = neurons[n].pos,
 		name = neurons[n].name,
+		linGrad = ctx.createLinearGradient(
+		    pos.x + radius / 3, pos.y - radius / 6,
+		    pos.x + radius / 3 + radius / 10, pos.y - radius / 6
+		),
 		fillGrad = ctx.createRadialGradient(
 		    pos.x - margin, pos.y - margin , (radius - margin) / 4,
 		    pos.x - margin, pos.y - margin, radius - margin);
+	    linGrad.addColorStop(0, '#aaa');
+	    linGrad.addColorStop(0.3, '#fff');
+	    linGrad.addColorStop(0.7, '#fff');
+	    linGrad.addColorStop(1, '#bbb');
 	    fillGrad.addColorStop(0, '#ffffff');
 	    fillGrad.addColorStop(1, '#f0f0f0');
 	    ctx.beginPath();
@@ -163,13 +199,19 @@ var VisualANN = (function () {
 		ctx.fillText(name, pos.x - radius / 3, pos.y + radius / 2);
 	    }
 	    // Current activation
-	    ctx.fillStyle = '#60a060';
+	    ctx.beginPath(); // Background for activation column
+	    ctx.fillStyle = linGrad;
+	    ctx.rect(pos.x + radius / 3,
+		     pos.y - radius / 6,
+		     radius / 10,
+		     radius / 2);
+	    ctx.fill();
+	    ctx.fillStyle = '#60a060'; // Activation
 	    ctx.fillRect(pos.x + radius / 3,
 			 pos.y - activation * radius / 2 + radius / 3,
 			 radius / 10,
 			 activation * (radius / 2));
-	    ctx.beginPath();
-	    ctx.strokeStyle = '#606060';
+	    ctx.strokeStyle = '#d0d0d0';
 	    ctx.rect(pos.x + radius / 3,
 		     pos.y - radius / 6,
 		     radius / 10,
