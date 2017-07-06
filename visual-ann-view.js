@@ -35,6 +35,8 @@ VisualANN.view = (function () {
 		    }
 		}
 	    };
+	ctx.imageSmoothingEnabled = true;
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	// Calculate neuron positions
 	for (n in neurons) {
 	    lastPos = getNextPos(lastPos);
