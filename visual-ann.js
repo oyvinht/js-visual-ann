@@ -8,10 +8,16 @@ var VisualANN = (function () {
 	n.activate = activationFunction;
 	n.id = "";
 	neurons.push(n);
-	console.log('Adding neuron');
+	console.log('Adding neuron.');
+	return n;
     },
-    addSynapse = function (fromNeuron, toNeuron) {
-
+    addSynapse = function (fromNeuron, toNeuron, strength) {
+	var s = {};
+	s.from = fromNeuron,
+	s.strength = strength,
+	s.to = toNeuron;
+	synapses.push(s);
+	console.log('Adding synapse.');
     },
     /**
      * Provides "global" access to the drawing context.
@@ -54,22 +60,41 @@ var VisualANN = (function () {
 		    }
 		}
 	    };
+	// Calculate neuron positions
 	for (n in neurons) {
 	    lastPos = getNextPos(lastPos);
-	    console.log(lastPos);
+	    neurons[n].pos = lastPos;
+	}
+	// Draw synapses
+	for (s in synapses) {
+	    var from = synapses[s].from.pos,
+		to = synapses[s].to.pos;
 	    ctx.beginPath();
-	    ctx.arc(lastPos.x, lastPos.y, radius - margin, 0, Math.PI * 2, true);
+	    ctx.moveTo(from.x, from.y);
+	    ctx.lineTo(to.x, to.y);
 	    ctx.stroke();
 	}
+	// Draw neurons
+	for (n in neurons) {
+	    var pos = neurons[n].pos;
+	    ctx.beginPath();
+	    ctx.fillStyle = '#eee';
+	    ctx.arc(pos.x, pos.y, radius - margin, 0, Math.PI * 2, true);
+	    ctx.fill();
+	    ctx.stroke();
+	}
+
     },
     SIGMOID_ACTIVATION = function (inputSum) {
 	return 1 / (1 + Math.exp(- inputSum));
-    };
+    },
+    synapses = [];
     /**
      * Things to export.
      */
     return {
 	addNeuron: addNeuron,
+	addSynapse: addSynapse,
 	init: init,
 	repaint: repaint,
 	SIGMOID_ACTIVATION: SIGMOID_ACTIVATION
