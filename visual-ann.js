@@ -1,5 +1,14 @@
 var VisualANN = {};
 
+VisualANN.activation = (function () {
+    var sigmoid = function (inputSum) {
+	return 1 / (1 + Math.exp(- inputSum));
+    };
+    return {
+	SIGMOID: sigmoid
+    };
+}());
+
 VisualANN.core = (function () {
     var
     /**
@@ -64,11 +73,8 @@ VisualANN.core = (function () {
      * @returns - A new network.
      */
     addNeuron = function (network, neuron) {
-	return {
-	    activate: network.activate,
-	    neurons: network.neurons.concat(neuron),
-	    synapses: network.synapses
-	};
+	network.neurons = network.neurons.concat(neuron);
+	return network;
     },
     /**
      * @param {Object} network - A network to extend.
@@ -76,18 +82,22 @@ VisualANN.core = (function () {
      * @returns - A new network.
      */
     addSynapse = function (network, synapse) {
-	return {
-	    activate: network.activate,
-	    neurons: network.neurons,
-	    synapses: network.synapses.concat(synapse)
-	};
+	network.synapses = network.synapses.concat(synapse);
+	return network;
     },
     makeNetwork = function () {
 	return {
 	    activate: function (inputs) {
 		return activate(this, inputs);
 	    },
-	    neurons: [], synapses: [] }
+	    addNeuron: function (neuron) {
+		return addNeuron(this, neuron);
+	    },
+	    addSynapse: function (synapse) {
+		return addSynapse(this, synapse);
+	    },
+	    neurons: [], synapses: []
+	};
     },
     /**
      * @param {Function} activationfunction - 
@@ -119,9 +129,6 @@ VisualANN.core = (function () {
 	    to: toNeuron
 	};
     },
-    SIGMOID_ACTIVATION = function (inputSum) {
-	return 1 / (1 + Math.exp(- inputSum));
-    },
     requirements = document.createElement('script');
     /**
      * Things to require.
@@ -132,11 +139,8 @@ VisualANN.core = (function () {
      * Things to export.
      */
     return {
-	addNeuron: addNeuron,
-	addSynapse: addSynapse,
 	makeNetwork: makeNetwork,
 	makeNeuron: makeNeuron,
-	makeSynapse: makeSynapse,
-	SIGMOID_ACTIVATION: SIGMOID_ACTIVATION
+	makeSynapse: makeSynapse
     };
 }());

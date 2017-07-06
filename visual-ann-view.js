@@ -72,10 +72,10 @@ VisualANN.view = (function () {
 		fillGrad = ctx.createRadialGradient(
 		    pos.x - margin, pos.y - margin , (radius - margin) / 4,
 		    pos.x - margin, pos.y - margin, radius - margin);
-	    linGrad.addColorStop(0, '#aaa');
+	    linGrad.addColorStop(0, '#888');
 	    linGrad.addColorStop(0.3, '#fff');
 	    linGrad.addColorStop(0.7, '#fff');
-	    linGrad.addColorStop(1, '#bbb');
+	    linGrad.addColorStop(1, '#888');
 	    fillGrad.addColorStop(0, '#ffffff');
 	    fillGrad.addColorStop(1, '#f0f0f0');
 	    ctx.beginPath();
@@ -87,7 +87,7 @@ VisualANN.view = (function () {
 	    // Names
 	    if (name) {
 		ctx.fillStyle = '#606060';
-		ctx.font = '16px Hack';
+		ctx.font = ''.concat(radius / 8,'px Hack, Courier, Verdana');
 		ctx.fillText(name, pos.x - radius / 3, pos.y + radius / 2);
 	    }
 	    // Current activation
