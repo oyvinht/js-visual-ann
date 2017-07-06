@@ -1,47 +1,95 @@
 var VisualANN = (function () {
     var
     /**
-     * 
+     * @param {Object} network - The network to activate.
+     * @param {Object} - A new network with updated activation
+     
+    activate = function (network) {
+	var currentActivations = [],
+	    i;
+	for (i = 0, i < network.neurons.length; 
+	for (n in network) {
+	    currentActivations.push(network[n].currentActivation);
+	}
+    },*/
+    /**
+     * @param {Object} network - A network to extend.
+     * @param {Object} neuron - A neuron to add.
+     * @returns - A new network.
      */
-    addNeuron = function (activationFunction) {
-	var n = {};
-	n.activate = activationFunction;
-	n.id = "";
-	neurons.push(n);
-	console.log('Adding neuron.');
-	return n;
-    },
-    addSynapse = function (fromNeuron, toNeuron, strength) {
-	var s = {};
-	s.from = fromNeuron,
-	s.strength = strength,
-	s.to = toNeuron;
-	synapses.push(s);
-	console.log('Adding synapse.');
+    addNeuron = function (network, neuron) {
+	return {
+	    neurons: network.neurons.concat(neuron),
+	    synapses: network.synapses
+	};
     },
     /**
-     * Provides "global" access to the drawing context.
+     * @param {Object} network - A network to extend.
+     * @param {Object} synapse - A synapse to add.
+     * @returns - A new network.
      */
-    canvas,
-    gensym = (function () {
-	var i = 0;
-    }()),
+    addSynapse = function (network, synapse) {
+	return {
+	    neurons: network.neurons,
+	    synapses: network.synapses.concat(synapse)
+	};
+    },
     /**
-     * @param div - A place to draw.
+     * @param {Element} div - The intended place to put the canvas.
      */
-    init = function (div) {
+    makeCanvas = function (div) {
 	var cvs = document.createElement('canvas');
 	cvs.setAttribute('height', div.clientHeight);
 	cvs.setAttribute('width', div.clientWidth);
-	div.appendChild(cvs);
-	canvas = cvs;
-	console.log("Appended canvas of size ".concat(
-	    cvs.clientWidth, 'x', cvs.clientHeight, '.'));
-	return this;
+	return cvs;
     },
-    neurons = [],
-    repaint = function () {
-	var radius = Math.sqrt(
+    makeNetwork = function () {
+	return { neurons: [], synapses: [] }
+    },
+    /**
+     * @param {number} activationfunction - a function that calculates
+     * neuron activation level given the sum of inputs.
+     * @param {string} name - a name to display in the gui.
+     * @returns {object} a neuron that can be used in a network.
+     */
+    makeNeuron = function (activationfunction, name) {
+	return {
+	    activate: activationfunction,
+	    currentactivation: 0,
+	    name: name
+	};
+    },
+    /**
+     * @param {object} fromneuron - the source.
+     * @param {object toneuron - the target.
+     * @param {number} strength - the "weight" of the connection.
+     */
+    makeSynapse = function (fromNeuron, toNeuron, strength) {
+	return {
+	    from: fromNeuron,
+	    strength: strength,
+	    to: toNeuron
+	};
+    },
+    nextActivation = function (neuron) {
+	var inputSum = 0,
+	    syn;
+	for (s in synapses) {
+	    syn = synapse[s];
+	    if (syn.to === neuron) {
+		inputSum += syn.from.currentActivation * syn.strength;
+	    }
+	}
+	return neuron.activate(inputSum);
+    },
+    /**
+     * @param {Object} network - The network to draw onto a canvas.
+     * @param {Canvas} canvas - A canvas to draw onto.
+     */
+    paint = function (network, canvas) {
+	var neurons = network.neurons,
+	    synapses = network.synapses,
+	    radius = Math.sqrt(
 	    (((canvas.height * canvas.width) / neurons.length) / 2)
 		/ Math.PI),
 	    margin = radius * 0.3,
@@ -76,27 +124,43 @@ var VisualANN = (function () {
 	}
 	// Draw neurons
 	for (n in neurons) {
-	    var pos = neurons[n].pos;
+	    var pos = neurons[n].pos,
+		name = neurons[n].name,
+		fillGrad = ctx.createRadialGradient(
+		    pos.x - margin, pos.y - margin , (radius - margin) / 4,
+		    pos.x - margin, pos.y - margin, radius - margin);
+	    fillGrad.addColorStop(0, '#ffffff');
+	    fillGrad.addColorStop(1, '#f0f0f0');
 	    ctx.beginPath();
-	    ctx.fillStyle = '#eee';
+	    ctx.fillStyle = fillGrad;
 	    ctx.arc(pos.x, pos.y, radius - margin, 0, Math.PI * 2, true);
 	    ctx.fill();
 	    ctx.stroke();
+	    // Names
+	    if (name) {
+		ctx.fillStyle = 'black';
+		ctx.font = '16px Hack';
+		ctx.fillText(name, pos.x - radius / 3, pos.y + radius / 2);
+	    }
+	    // Current activation
+	    console.log(neurons[n].currentActivation);
 	}
 
     },
     SIGMOID_ACTIVATION = function (inputSum) {
 	return 1 / (1 + Math.exp(- inputSum));
-    },
-    synapses = [];
+    };
     /**
      * Things to export.
      */
     return {
 	addNeuron: addNeuron,
 	addSynapse: addSynapse,
-	init: init,
-	repaint: repaint,
+	makeCanvas: makeCanvas,
+	makeNetwork: makeNetwork,
+	makeNeuron: makeNeuron,
+	makeSynapse: makeSynapse,
+	paint: paint,
 	SIGMOID_ACTIVATION: SIGMOID_ACTIVATION
     };
 }());
