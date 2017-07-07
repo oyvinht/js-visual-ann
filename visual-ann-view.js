@@ -1,7 +1,9 @@
 VisualANN.view = (function () {
     var
     /**
+     * Create a canvas to render the network to.
      * @param {Element} div - The intended place to put the canvas.
+     * @returns {Canvas}
      */
     makeCanvas = function (div) {
 	var cvs = document.createElement('canvas');
@@ -10,19 +12,18 @@ VisualANN.view = (function () {
 	return cvs;
     },
     /**
-     * @param {Object} network - The network to draw onto a canvas.
+     * @param {Network} network - The network to draw.
      * @param {Canvas} canvas - A canvas to draw onto.
      */
     paint = function (network, canvas) {
-	var neurons = network.neurons,
-	    synapses = network.synapses,
+	var neurons = network.getNeurons(),
 	    radius = Math.sqrt(((
-		(canvas.height * canvas.width) / neurons.length) / 2)
-			       / Math.PI),
+		(canvas.height * canvas.width) / neurons.length) /
+				2) / Math.PI),
 	    margin = radius * 0.3,
 	    ctx = canvas.getContext('2d'),
-	    lastPos = {x: 0, y: 0},
 	    getNextPos = function (pos) {
+		// Find next position in a grid
 		if (pos.x == 0 && pos.y == 0) {
 		    return { x: radius, y: radius };
 		} else {
@@ -47,20 +48,24 @@ VisualANN.view = (function () {
 	ctx.imageSmoothingEnabled = true;
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	// Calculate neuron positions
-	for (n in neurons) {
-	    lastPos = getNextPos(lastPos);
-	    neurons[n].pos = lastPos;
-	}
+	neurons = neurons.reduce(function (res, neuron) {
+	    if (res.length > 0) {
+		neuron.pos = getNextPos(res[res.length - 1].pos);
+	    } else {
+		neuron.pos = { x: radius, y: radius };
+	    }
+	    return res.concat(neuron);
+	}, []);
 	// Draw synapses
-	for (s in synapses) {
-	    var from = synapses[s].from.pos,
-		to = synapses[s].to.pos,
-		strength = synapses[s].strength;
+	network.getSynapses().map(function (synapse) {
+	    var from = synapse.getFromNeuron().pos,
+		to = synapse.getToNeuron().pos,
+		strength = synapse.getStrength();
 	    ctx.beginPath();
 	    ctx.moveTo(from.x, from.y);
 	    ctx.lineTo(to.x, to.y);
 	    ctx.save();
-	    ctx.lineWidth = Math.abs(strength) / 2
+	    ctx.lineWidth = Math.abs(strength) / 2;
 	    if (strength < 0) {
 		ctx.setLineDash([4, 4]);
 		ctx.lineDashOffset = 20;
@@ -68,12 +73,12 @@ VisualANN.view = (function () {
 	    ctx.strokeStyle = '#808080';
 	    ctx.stroke();
 	    ctx.restore();
-	}
+	});
 	// Draw neurons
-	for (n in neurons) {
-	    var activation = neurons[n].currentActivation,
-		pos = neurons[n].pos,
-		name = neurons[n].name,
+	neurons.map(function (neuron) {
+	    var activation = neuron.getCurrentActivation(),
+		pos = neuron.pos,
+		name = neuron.getName(),
 		linGrad = ctx.createLinearGradient(
 		    pos.x + radius / 3, pos.y - radius / 6,
 		    pos.x + radius / 3 + radius / 10, pos.y - radius / 6
@@ -118,11 +123,9 @@ VisualANN.view = (function () {
 		     radius / 10,
 		     radius / 2);
 	    ctx.stroke();
-	}
+	});
     };
-    /**
-     * Things to export.
-     */
+    // Things to export.
     return {
 	makeCanvas: makeCanvas,
 	paint: paint
