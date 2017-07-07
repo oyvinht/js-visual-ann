@@ -203,7 +203,6 @@ VisualANN.core = (function () {
 	 */
 	this.getSource =  function () { return source; };
     },
-    requirements = document.createElement('script'),
     /**
      * A constructor for Synapse objects.
      * @param {Neuron} fromNeuron
@@ -228,9 +227,6 @@ VisualANN.core = (function () {
 	 */
 	this.getStrength = function () { return strength; };
     };
-    // Things to require.
-    requirements.setAttribute('src', 'js-visual-ann/visual-ann-view.js');
-    document.head.append(requirements);
     // Things to export.
     return {
 	Network: Network,
