@@ -8,7 +8,9 @@ A simple recurrent ANN simulator is included, using the logistics function for n
 
 **Example**
 
-[A simple test page](example.html)
+A simple example page is included.
+
+A test page is available [here](http://www.pvv.ntnu.no/~oyvinht/content/ann/).
 
 **Documentation**
 
