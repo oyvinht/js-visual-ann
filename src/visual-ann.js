@@ -23,6 +23,16 @@ VisualANN.core = (function () {
      * @returns {Network} A network with updated neuron activations.
      */
     activate = function (network, inputs) {
+	switch (network.getNetworkType()) {
+	case VisualANN.core.networkTypes.FFN:
+	    break;
+	case VisualANN.core.networkTypes.RNN:
+	    return activateRNN(network, inputs);
+	default:
+	    console.log("Unknown network type.");
+	}
+    },
+    activateRNN = function (network, inputs) {
 	var sumInput = function (neuron) {
 		var input = inputs.find(function (input) {
 		    return input.neuron === neuron;
@@ -91,9 +101,10 @@ VisualANN.core = (function () {
      * @param {Array<Synapse>} [synapses=[]] Initial synapses.
      * @returns {Network}
      */
-    Network = function (neurons, synapses) {
+    Network = function (neurons, synapses, networkType) {
 	var neus = neurons || [],
-	    syns = synapses || [];
+	    syns = synapses || [],
+	    netType = networkType || VisualANN.core.networkTypes.RNN;
 	/**
 	 * Creates a new Network by activating all neurons in the 
 	 * network based on current neuron activations.
@@ -157,6 +168,20 @@ VisualANN.core = (function () {
 	this.getSynapses = function () {
 	    return syns;
 	};
+	/**
+	 * Retrieve the type of network topology
+	 * @returns {String}
+	 */
+	this.getNetworkType = function () {
+	    return netType;
+	};
+    },
+    /**
+     * An enum of network topology types.
+     */
+    networkTypes = {
+	FFN: 0,
+	RNN: 1
     },
     /**
      * A constructor for Neuron objects.
@@ -165,10 +190,15 @@ VisualANN.core = (function () {
      * @param {string} [name=''] A name to use for display purposes.
      * @param {number} [activation=0] The initial activation.
      * @param {Neuron} [source=undefined] A reference to a previous
-     * neuron, if this neuron has replaced one.
+     * neuron, if this neuron is replacing one.
+     * @param {number} [layer=undefined] Layer number, if using.
      * @returns {Neuron}
      */
-    Neuron = function (activationFunction, name, activation, source) {
+    Neuron = function (activationFunction,
+		       name,
+		       activation,
+		       source,
+		       layer) {
 	/**
 	 * Create a new neuron by activating this one given the sum of
 	 * inputs.
@@ -231,6 +261,7 @@ VisualANN.core = (function () {
     return {
 	Network: Network,
 	Neuron: Neuron,
+	networkTypes: networkTypes,
 	Synapse: Synapse
     };
 }());
