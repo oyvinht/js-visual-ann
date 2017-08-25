@@ -1,0 +1,44 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="index.css">
+    <script type="text/javascript"
+	    src="../src/visual-ann.js">
+    </script>
+    <script type="text/javascript"
+	    src="../src/visual-ann-view.js">
+    </script>
+    <script type="text/javascript"
+	    src="index.js">
+    </script>
+  </head>
+  <body onload="init()" value="ffn">
+    <select id="network-type">
+      <option value="ffn">Feed-Forward</option>
+      <option value="rnn">Recurrent Neural Network</option>
+      <option value="rnn-demo">Recurrent Neural Network (demo)</option>
+    </select>
+    <div class="panel" id="neuron-panel">
+      <div class="panel-label">Neuron</div>
+      <label class="control-label" for="neuron-name">Name</label>
+      <input id="neuron-name"></input>
+      <label class="control-label"
+	     for="neuron-layer"
+	     id="neuron-layer-label">Layer</label>
+      <input id="neuron-layer" type="number"></input>
+      <input id="add-neuron-button" type="button" value="Add"></input>
+    </div>
+    <div class="panel" id="synapse-panel">
+      <div class="panel-label">Synapse</div>
+      <label class="control-label" for="synapse-from">From</label>
+      <select id="synapse-from"></select>
+      <label class="control-label" for="synapse-to">To</label>
+      <select id="synapse-to"></select>
+      <label class="control-label" for="synapse-strength">Strength</label>
+      <input id="synapse-strength" type="number"></input>
+      <input id="add-synapse-button" type="button" value="Add"></input>
+    </div>
+    <div id="canvasholder"
+	 style="border: none; height: 600px; width: 600px;">
+    </div>
+  </body>
+</html>

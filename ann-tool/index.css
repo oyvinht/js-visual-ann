@@ -1,0 +1,35 @@
+.panel {
+    background-color: lightgray;
+    border: 1pt solid gray;
+    display: table;
+    margin: 1em;
+    padding: 0.5em;
+}
+
+.panel input {
+    clear: none;
+    float: right;
+    margin: 0.2em;
+}
+
+.panel label {
+    clear: both;
+    float: left;
+    margin-right: 0.5em;
+    min-width: 4em;
+}
+
+.panel input[type=button] {
+    clear: right;
+    font-weight: bold;
+}
+
+.panel select {
+    float: right;
+    margin: 0.2em;
+}
+
+.panel-label {
+    font-family: Hack, Arial;
+    font-weight: bold;
+}
