@@ -50,7 +50,7 @@ VisualANN.core = (function () {
 		layer.map(function (n) {
 		    setTimeout(function () {
 			n.activate(network.sumInputs(n, inputs));
-		    }, 1000 * l); // Two secs between layers
+		    }, 1000 * l); // One sec between layers
 		});
 	    }
 	}
@@ -236,7 +236,8 @@ VisualANN.core = (function () {
 	var activating = new CustomEvent('activating', {
 	    detail: { neuron: this }
 	}),
-	    currentActivation = activation;
+	    currentActivation = activation,
+	    inputSum;
 	/**
 	 * Create a new neuron by activating this one given the sum of
 	 * inputs.
@@ -246,8 +247,9 @@ VisualANN.core = (function () {
 	 */
 	this.activate = function (inputSum) {
 	    var now = new Date().getTime();
-	    document.dispatchEvent(activating);
+	    this.inputSum = inputSum;
 	    currentActivation = activationFunction(inputSum);
+	    document.dispatchEvent(activating);
 	};
 	/**
 	 * Get the current activation.
@@ -257,6 +259,9 @@ VisualANN.core = (function () {
 	this.getCurrentActivation = function () {
 	    return currentActivation || 0;
 	};
+	this.getInputSum = function () {
+	    return this.inputSum;
+	},
 	/**
 	 * Get a displayable name.
 	 * @name Neuron.getName

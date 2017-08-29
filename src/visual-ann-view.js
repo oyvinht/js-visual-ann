@@ -68,6 +68,7 @@ VisualANN.view = (function () {
     paintNeuron = function (neuron, canvas, radius, isActivating) {
 	var ctx = canvas.getContext('2d'),
 	    name = neuron.getName(),
+	    inSum = neuron.getInputSum(),
 	    pos = neuronPositions[name],
 	    r = radius || pos.r,
 	    activation = neuron.getCurrentActivation(),
@@ -88,6 +89,12 @@ VisualANN.view = (function () {
 	    ctx.fillStyle = '#606060';
 	    ctx.font = ''.concat(r / 8,'px Hack, Courier, Verdana');
 	    ctx.fillText(name, pos.x - r / 3, pos.y + r / 2);
+	}
+	// Input
+	if (inSum != null) {
+	    ctx.fillStyle = '#606060';
+	    ctx.font = ''.concat(r / 12,'px Hack, Courier, Verdana');
+	    ctx.fillText(inSum.toFixed(2), pos.x - r / 2, pos.y + r / 50);
 	}
 	// Current activation
 	paintNeuronActivation(neuron, canvas, radius, isActivating, activation);
