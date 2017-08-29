@@ -23,55 +23,63 @@ VisualANN.core = (function () {
      * @returns {Network} A network with updated neuron activations.
      */
     activate = function (network, inputs) {
-	switch (network.getNetworkType()) {
+	switch (network.getType()) {
 	case VisualANN.core.networkTypes.FFN:
-	    break;
+	    return activateFFN(network, inputs);
 	case VisualANN.core.networkTypes.RNN:
 	    return activateRNN(network, inputs);
 	default:
-	    console.log("Unknown network type.");
+	    throw "Unknown network type.";
 	}
     },
+    activateFFN = function (network, inputs) {
+	var // Order into layers
+	nByLayers = network.getNeurons().reduce(function (l, n) {
+	    if (l[n.getLayer()] == null) {
+		l[n.getLayer()] = [];
+	    }
+	    l[n.getLayer()].push(n);
+	    return l;
+	}, {}),
+	// Activate neurons layer by layer
+	newNeurons = Object.keys(nByLayers).reduce(
+	    function (neurons, layerKey) {
+		var layer = nByLayers[layerKey];
+		return neurons.concat(layer.map(function (neuron) {
+		    return neuron.activate(
+			network.sumInputs(neuron, inputs));
+		}));
+	    },
+	    []);
+	return new Network(
+	    newNeurons,
+	    copySynapses(network, newNeurons),
+	    network.getType());
+    },
+    copySynapses = function (oldNetwork, newNeurons) {
+	return oldNetwork.getSynapses().map(
+	    function (synapse) {
+		return new Synapse(
+		    newNeurons.find(function (neuron) {
+			return neuron.getSource() ===
+			    synapse.getFromNeuron();
+		    }),
+		    newNeurons.find(function (neuron) {
+			return neuron.getSource() ===
+			    synapse.getToNeuron();
+		    }),
+		    synapse.getStrength());
+	    });
+    },
     activateRNN = function (network, inputs) {
-	var sumInput = function (neuron) {
-		var input = inputs.find(function (input) {
-		    return input.neuron === neuron;
-		});
-		// If neuron is among input neurons return its value.
-		if (input) {
-		    return input.value;
-		}
-		// ... otherwise, collect inputs form other neurons
-		return network.getSynapses().map(function (syn) {
-		    if (syn.getToNeuron() === neuron) {
-			return syn.getFromNeuron()
-			    .getCurrentActivation() *
-			    syn.getStrength();
-		    } else {
-			return 0;
-		    }
-		}).reduce(function (sum, val) { // ... and sum them.
-		    return sum + val;
-		}, 0);
-	},
-	    newNeurons = network.getNeurons().map(
-		function (neuron) {
-		    return neuron.activate(sumInput(neuron));
-		}),
-	    newSynapses = network.getSynapses().map(
-		function (synapse) {
-		    return new Synapse(
-			newNeurons.find(function (neuron) {
-			    return neuron.getSource() ===
-				synapse.getFromNeuron();
-			}),
-			newNeurons.find(function (neuron) {
-			    return neuron.getSource() ===
-				synapse.getToNeuron();
-			}),
-			synapse.getStrength());
-		});
-	return new Network(newNeurons, newSynapses);
+	var newNeurons = network.getNeurons().map(
+	    function (neuron) {
+		return neuron.activate(
+		    network.sumInputs(neuron, inputs));
+	    });
+	return new Network(newNeurons,
+			   copySynapses(network, newNeurons),
+			   network.getType());
     },
     /**
      * Creates a new Network with an additional neuron added to it.
@@ -81,8 +89,13 @@ VisualANN.core = (function () {
      * @returns {Network}
      */
     addNeuron = function (network, neuron) {
-	return new Network(network.getNeurons().concat(neuron),
-			   network.getSynapses());
+	if (neuron.getLayer() == null) {
+	    throw "Using neuron without layer in a layered network.";
+	} else {
+	    return new Network(network.getNeurons().concat(neuron),
+			       network.getSynapses(),
+			       network.getType());
+	}
     },
     /**
      * Creates a new Network with an additional synapse added to it.
@@ -93,7 +106,8 @@ VisualANN.core = (function () {
      */
     addSynapse = function (network, synapse) {
 	return new Network(network.getNeurons(),
-			   network.getSynapses().concat(synapse));
+			   network.getSynapses().concat(synapse),
+			   network.getType());
     },
     /**
      * A constructor for Network objects.
@@ -104,7 +118,8 @@ VisualANN.core = (function () {
     Network = function (neurons, synapses, networkType) {
 	var neus = neurons || [],
 	    syns = synapses || [],
-	    netType = networkType || VisualANN.core.networkTypes.RNN;
+	    netType = networkType != null ? networkType
+	    : VisualANN.core.networkTypes.RNN;
 	/**
 	 * Creates a new Network by activating all neurons in the 
 	 * network based on current neuron activations.
@@ -172,8 +187,43 @@ VisualANN.core = (function () {
 	 * Retrieve the type of network topology
 	 * @returns {String}
 	 */
-	this.getNetworkType = function () {
+	this.getType = function () {
 	    return netType;
+	};
+	/**
+	 * Count how many layers of neurons there are.
+	 */
+	this.countLayers = function () {
+	    var layers = this.getNeurons().reduce(function (lays, n) {
+		var lay = n.getLayer();
+		if (!lays.some(function (l) {return l == lay;})) {
+		    return [lay].concat(lays);
+		} else {
+		    return lays;
+		}
+	    }, []);
+	    return layers.length;
+	};
+	this.sumInputs = function (neuron, inputs) {
+	    var input = inputs.find(function (input) {
+		return input.neuron === neuron;
+	    });
+	    // If neuron is among input neurons return its value.
+	    if (input) {
+		return input.value;
+	    }
+	    // ... otherwise, collect inputs form other neurons
+	    return this.getSynapses().map(function (syn) {
+		if (syn.getToNeuron() === neuron) {
+		    return syn.getFromNeuron()
+			.getCurrentActivation() *
+			syn.getStrength();
+		} else {
+		    return 0;
+		}
+	    }).reduce(function (sum, val) { // ... and sum them.
+		return sum + val;
+	    }, 0);
 	};
     },
     /**
@@ -210,7 +260,8 @@ VisualANN.core = (function () {
 	    return new Neuron(activationFunction,
 			      name,
 			      activationFunction(inputSum),
-			      this);
+			      this,
+			      layer);
 	};
 	/**
 	 * Get the current activation.
@@ -226,6 +277,12 @@ VisualANN.core = (function () {
 	 * @returns {string}
 	 */
 	this.getName = function () { return name || ''; };
+	/**
+	 * Get the layer that this neuron resides in.
+	 * @name Neuron.getLayer
+	 * @returns {number}
+	 */
+	this.getLayer = function () { return layer; };
 	/**
 	 * Get the neuron that this neuron has replaced.
 	 * @name Neuron.getSource
