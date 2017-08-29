@@ -1,14 +1,43 @@
 function makeNetwork (type) {
-    var network = new VisualANN.core.Network();
+    var network;
     switch (type) {
     case "ffn":
 	console.log("Creating Feed-Forward Network.");
+	// Test code below
+	network = new VisualANN.core.Network(
+	    null, null, VisualANN.core.networkTypes.FFN);
+	network = network.addNeuron(
+	    new VisualANN.core.Neuron(VisualANN.activation.SIGMOID,
+				      'in-1',
+				      0,
+				      null,
+				      0));
+	network = network.addNeuron(
+	    new VisualANN.core.Neuron(VisualANN.activation.SIGMOID,
+				      'in-2',
+				      0,
+				      null,
+				      0));
+	network = network.addNeuron(
+	    new VisualANN.core.Neuron(VisualANN.activation.SIGMOID,
+				      'out',
+				      0,
+				      null,
+				      1));
+	network = network.addSynapse(
+	    new VisualANN.core.Synapse(
+		network.getNeuron(0), network.getNeuron(2), 2));
+	network = network.addSynapse(
+	    new VisualANN.core.Synapse(
+		network.getNeuron(1), network.getNeuron(2), -2));
 	break;
     case "rnn":
 	console.log("Creating Recurrent Neural Network.");
 	break;
     case "rnn-demo":
 	// Test code below
+	network = new VisualANN.core.Network(
+	    null, null, VisualANN.core.networkTypes.RNN);
 	network = network.addNeuron(
 	    new VisualANN.core.Neuron(
 		VisualANN.activation.SIGMOID, 'in-1'));
@@ -49,6 +78,7 @@ function makeNetwork (type) {
 	]);
 	break;
     default:
+	//network = new VisualANN.core.Network();
     }
     return network;
 }
@@ -86,7 +116,7 @@ function init () {
 	    layerNumber.style.display = "none";
 	    layerNumberLabel.style.display = "none";
 	}
-	network = network = makeNetwork(type);
+	network = makeNetwork(type);
     };
     addNeuronButton.onclick = function () {
 	var name = document.getElementById("neuron-name").value,
@@ -122,7 +152,7 @@ function init () {
 		opt.innerHTML = n.getName();
 		selectToNeuron.appendChild(opt);
 	    });
-
+	network.countLayers();
     };
     addSynapseButton.onclick = function () {
 	var strength = document.getElementById(
@@ -133,7 +163,9 @@ function init () {
 		network.getNeuron(0), network.getNeuron(3), -2));
     };
     // Create network
-    network = makeNetwork(VisualANN.core.networkTypes.RNN);
+    // network = makeNetwork(VisualANN.core.networkTypes.RNN);
+    network = makeNetwork(VisualANN.core.networkTypes.FFN);
+    networkSelector.onchange({target: networkSelector});
     div.appendChild(canvas);
     draw(network, canvas);
     setInterval(function () {
