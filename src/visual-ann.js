@@ -50,7 +50,7 @@ VisualANN.core = (function () {
 		layer.map(function (n) {
 		    setTimeout(function () {
 			n.activate(network.sumInputs(n, inputs));
-		    }, 2000 * l); // Two secs between layers
+		    }, 1000 * l); // Two secs between layers
 		});
 	    }
 	}

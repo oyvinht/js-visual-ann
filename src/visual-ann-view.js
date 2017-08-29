@@ -20,7 +20,45 @@ VisualANN.view = (function () {
 	return cvs;
     },
     neuronPositions = [],
-
+    paintNeuronActivation = function (neuron, canvas, radius,
+				      isActivating, activation) {
+	var ctx = canvas.getContext('2d'),
+	    pos = neuronPositions[neuron.getName()],
+	    r = pos.r,
+	    linGrad = ctx.createLinearGradient(
+		pos.x + r / 3, pos.y - r / 6,
+		pos.x + r / 3 + r / 10, pos.y - r / 6
+	    );
+	linGrad.addColorStop(0, '#888');
+	linGrad.addColorStop(0.3, '#fff');
+	linGrad.addColorStop(0.7, '#fff');
+	linGrad.addColorStop(1, '#888');
+	ctx.beginPath(); // Background for activation column
+	ctx.fillStyle = linGrad;
+	ctx.rect(pos.x + r / 3,
+		 pos.y - r / 6,
+		 r / 10,
+		 r / 2);
+	ctx.fill();
+	ctx.fillStyle = '#60a060'; // Activation
+	ctx.fillRect(pos.x + r / 3,
+		     pos.y - activation * r / 2 + r / 3,
+		     r / 10,
+		     activation * (r / 2));
+	if (isActivating || activation !== neuron.getCurrentActivation()) {
+	    setTimeout(function () {
+		paintNeuronActivation(
+		    neuron, canvas, radius, false,
+		    activation + ((neuron.getCurrentActivation() - activation) / 5));
+	    }, 10);
+	}
+	ctx.rect(pos.x + r / 3,
+		 pos.y - r / 6,
+		 r / 10,
+		 r / 2);
+	ctx.stroke();
+	ctx.restore();	
+    },
     /**
      * Draw (or redraw) a neuron onto canvas.
      * @param {Neuron} neuron - The neuron to (re)draw.
@@ -34,17 +72,9 @@ VisualANN.view = (function () {
 	    r = radius || pos.r,
 	    activation = neuron.getCurrentActivation(),
 	    margin = r * 0.3,
-	    linGrad = ctx.createLinearGradient(
-		pos.x + r / 3, pos.y - r / 6,
-		pos.x + r / 3 + r / 10, pos.y - r / 6
-	    ),
 	    fillGrad = ctx.createRadialGradient(
 		pos.x - margin, pos.y - margin , (r - margin) / 4,
 		pos.x - margin, pos.y - margin, r - margin);
-	linGrad.addColorStop(0, '#888');
-	linGrad.addColorStop(0.3, '#fff');
-	linGrad.addColorStop(0.7, '#fff');
-	linGrad.addColorStop(1, '#888');
 	fillGrad.addColorStop(0, '#ffffff');
 	fillGrad.addColorStop(1, '#f0f0f0');	
 	ctx.beginPath();
@@ -60,32 +90,7 @@ VisualANN.view = (function () {
 	    ctx.fillText(name, pos.x - r / 3, pos.y + r / 2);
 	}
 	// Current activation
-	ctx.beginPath(); // Background for activation column
-	ctx.fillStyle = linGrad;
-	ctx.rect(pos.x + r / 3,
-		 pos.y - r / 6,
-		 r / 10,
-		 r / 2);
-	ctx.fill();
-	ctx.fillStyle = '#60a060'; // Activation
-	ctx.fillRect(pos.x + r / 3,
-		     pos.y - activation * r / 2 + r / 3,
-		     r / 10,
-		     activation * (r / 2));
-	if (isActivating) {
-	    ctx.save();
-	    ctx.strokeStyle = '#a0b0c0';
-	    ctx.lineWidth = 4;
-	    setTimeout(function () {
-		paintNeuron(neuron, canvas, radius, false);
-	    }, 1000);
-	}
-	ctx.rect(pos.x + r / 3,
-		 pos.y - r / 6,
-		 r / 10,
-		 r / 2);
-	ctx.stroke();
-	ctx.restore();
+	paintNeuronActivation(neuron, canvas, radius, isActivating, activation);
     },
     /**
      * @param {Network} network - The network to draw.

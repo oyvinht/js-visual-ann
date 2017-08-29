@@ -178,8 +178,8 @@ function init () {
     ]);
     setTimeout(function () {
 	network.activate([
-	    { neuron: network.getNeuron(0), value: 2 },
-	    { neuron: network.getNeuron(1), value: -4 }
+	    { neuron: network.getNeuron(0), value: 0 },
+	    { neuron: network.getNeuron(1), value: -2 }
 	]);
     }, 2000);
 }
