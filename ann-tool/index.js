@@ -3,6 +3,9 @@ function makeNetwork (type) {
     switch (type) {
     case "ffn":
 	console.log("Creating Feed-Forward Network.");
+	break;
+    case "ffn-demo":
+	console.log("Creating Feed-Forward Network.");
 	// Test code below
 	network = new VisualANN.core.Network(
 	    null, null, VisualANN.core.networkTypes.FFN);
@@ -29,7 +32,7 @@ function makeNetwork (type) {
 		network.getNeuron(0), network.getNeuron(2), 2));
 	network = network.addSynapse(
 	    new VisualANN.core.Synapse(
-		network.getNeuron(1), network.getNeuron(2), -2));
+		network.getNeuron(1), network.getNeuron(2), -1));
 	break;
     case "rnn":
 	console.log("Creating Recurrent Neural Network.");
@@ -72,7 +75,7 @@ function makeNetwork (type) {
 	    new VisualANN.core.Synapse(
 		network.getNeuron(2), network.getNeuron(4), 2));
 	// Send initial activation    
-	network = network.activate([
+	network.activate([
 	    { neuron: network.getNeuron(0), value: 2 },
 	    { neuron: network.getNeuron(1), value: -2 }
 	]);
@@ -88,8 +91,10 @@ function init () {
 	canvas = VisualANN.view.makeCanvas(div),
 	network,
 	draw = function (network, canvas) {
+	    if (!network) { throw 'No network to draw.'; }
+	    if (!canvas) { throw 'No canvas to draw onto.'; }
 	    VisualANN.view.paint(network, canvas);
-	    network = network.activate([]);
+	    network.activate([]);
 	    return network;
 	},
 	networkSelector = document.getElementById('network-type'),
@@ -163,12 +168,18 @@ function init () {
 		network.getNeuron(0), network.getNeuron(3), -2));
     };
     // Create network
-    // network = makeNetwork(VisualANN.core.networkTypes.RNN);
-    network = makeNetwork(VisualANN.core.networkTypes.FFN);
+    networkSelector.selectedIndex = 1;
     networkSelector.onchange({target: networkSelector});
     div.appendChild(canvas);
     draw(network, canvas);
-    setInterval(function () {
-	network = draw(network, canvas);
-    }, 1000);
+    network.activate([
+	{ neuron: network.getNeuron(0), value: 2 },
+	{ neuron: network.getNeuron(1), value: -1 }
+    ]);
+    setTimeout(function () {
+	network.activate([
+	    { neuron: network.getNeuron(0), value: 2 },
+	    { neuron: network.getNeuron(1), value: -4 }
+	]);
+    }, 2000);
 }

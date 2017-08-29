@@ -25,9 +25,11 @@ VisualANN.core = (function () {
     activate = function (network, inputs) {
 	switch (network.getType()) {
 	case VisualANN.core.networkTypes.FFN:
-	    return activateFFN(network, inputs);
+	    activateFFN(network, inputs);
+	    break;
 	case VisualANN.core.networkTypes.RNN:
-	    return activateRNN(network, inputs);
+	    activateRNN(network, inputs);
+	    break;
 	default:
 	    throw "Unknown network type.";
 	}
@@ -40,36 +42,18 @@ VisualANN.core = (function () {
 	    }
 	    l[n.getLayer()].push(n);
 	    return l;
-	}, {}),
+	}, {});
 	// Activate neurons layer by layer
-	newNeurons = Object.keys(nByLayers).reduce(
-	    function (neurons, layerKey) {
-		var layer = nByLayers[layerKey];
-		return neurons.concat(layer.map(function (neuron) {
-		    return neuron.activate(
-			network.sumInputs(neuron, inputs));
-		}));
-	    },
-	    []);
-	return new Network(
-	    newNeurons,
-	    copySynapses(network, newNeurons),
-	    network.getType());
-    },
-    copySynapses = function (oldNetwork, newNeurons) {
-	return oldNetwork.getSynapses().map(
-	    function (synapse) {
-		return new Synapse(
-		    newNeurons.find(function (neuron) {
-			return neuron.getSource() ===
-			    synapse.getFromNeuron();
-		    }),
-		    newNeurons.find(function (neuron) {
-			return neuron.getSource() ===
-			    synapse.getToNeuron();
-		    }),
-		    synapse.getStrength());
-	    });
+	for (var l in nByLayers) {
+	    if (nByLayers.hasOwnProperty(l)) {
+		var layer = nByLayers[l];
+		layer.map(function (n) {
+		    setTimeout(function () {
+			n.activate(network.sumInputs(n, inputs));
+		    }, 2000 * l); // Two secs between layers
+		});
+	    }
+	}
     },
     activateRNN = function (network, inputs) {
 	var newNeurons = network.getNeurons().map(
@@ -77,9 +61,9 @@ VisualANN.core = (function () {
 		return neuron.activate(
 		    network.sumInputs(neuron, inputs));
 	    });
-	return new Network(newNeurons,
+	/*return new Network(newNeurons,
 			   copySynapses(network, newNeurons),
-			   network.getType());
+			   network.getType());*/
     },
     /**
      * Creates a new Network with an additional neuron added to it.
@@ -121,15 +105,15 @@ VisualANN.core = (function () {
 	    netType = networkType != null ? networkType
 	    : VisualANN.core.networkTypes.RNN;
 	/**
-	 * Creates a new Network by activating all neurons in the 
-	 * network based on current neuron activations.
+	 * Destructively activates all neurons in the network based
+	 *  on current neuron activations.
 	 * @name Network.activate
 	 * @param {Array<Object>} inputs An Array of Objects on the
 	 * form { neuron: \<Neuron\>, value: \<number\> }.
 	 * @returns {Network}
 	 */
 	this.activate = function (inputs) {
-	    return activate(this, inputs);
+	    activate(this, inputs);
 	};
 	/**
 	 * Creates a new Network with a new neuron added to it.
@@ -249,6 +233,10 @@ VisualANN.core = (function () {
 		       activation,
 		       source,
 		       layer) {
+	var activating = new CustomEvent('activating', {
+	    detail: { neuron: this }
+	}),
+	    currentActivation = activation;
 	/**
 	 * Create a new neuron by activating this one given the sum of
 	 * inputs.
@@ -257,11 +245,9 @@ VisualANN.core = (function () {
 	 * @returns {Neuron}
 	 */
 	this.activate = function (inputSum) {
-	    return new Neuron(activationFunction,
-			      name,
-			      activationFunction(inputSum),
-			      this,
-			      layer);
+	    var now = new Date().getTime();
+	    document.dispatchEvent(activating);
+	    currentActivation = activationFunction(inputSum);
 	};
 	/**
 	 * Get the current activation.
@@ -269,7 +255,7 @@ VisualANN.core = (function () {
 	 * @returns {number}
 	 */
 	this.getCurrentActivation = function () {
-	    return activation || 0;
+	    return currentActivation || 0;
 	};
 	/**
 	 * Get a displayable name.
