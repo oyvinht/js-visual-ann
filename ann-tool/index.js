@@ -94,8 +94,6 @@ function init () {
 	    if (!network) { throw 'No network to draw.'; }
 	    if (!canvas) { throw 'No canvas to draw onto.'; }
 	    VisualANN.view.paint(network, canvas);
-	    network.activate([]);
-	    return network;
 	},
 	networkSelector = document.getElementById('network-type'),
 	neuronPanel = document.getElementById('neuron-panel'),
@@ -172,14 +170,18 @@ function init () {
     networkSelector.onchange({target: networkSelector});
     div.appendChild(canvas);
     draw(network, canvas);
-    network.activate([
-	{ neuron: network.getNeuron(0), value: 2 },
-	{ neuron: network.getNeuron(1), value: -1 }
-    ]);
     setTimeout(function () {
-	network.activate([
-	    { neuron: network.getNeuron(0), value: 0 },
-	    { neuron: network.getNeuron(1), value: -2 }
-	]);
+	VisualANN.view.setMessage('Setting inputs to 2 and -1.');
+	draw(network, canvas);
+	network.activate(
+	    [{ neuron: network.getNeuron(0), value: 2 },
+	     { neuron: network.getNeuron(1), value: -1 }]);
+	setTimeout(function () {
+	    VisualANN.view.setMessage('Switching inputs to -2 and 1.');
+	    draw(network, canvas);
+	    network.activate(
+		[{ neuron: network.getNeuron(0), value: -2 },
+		 { neuron: network.getNeuron(1), value: 1 }]);
+	}, 3000);
     }, 2000);
 }

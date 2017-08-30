@@ -42,16 +42,24 @@ VisualANN.core = (function () {
 	    }
 	    l[n.getLayer()].push(n);
 	    return l;
-	}, {});
+	}, {}),
+	activateLayer = function (layerNum) {
+	    var layer = nByLayers[layerNum];
+	    layer.map(function (n) {
+		n.activate(network.sumInputs(n, inputs));
+		document.dispatchEvent(new CustomEvent(
+		    'layeractivated',
+		    { detail: {
+			layer: layerNum,
+			network: network,
+			neurons: layer
+		    } }));
+	    });
+	};
 	// Activate neurons layer by layer
 	for (var l in nByLayers) {
 	    if (nByLayers.hasOwnProperty(l)) {
-		var layer = nByLayers[l];
-		layer.map(function (n) {
-		    setTimeout(function () {
-			n.activate(network.sumInputs(n, inputs));
-		    }, 1000 * l); // One sec between layers
-		});
+		setTimeout(activateLayer.bind(null, l), 1000 * l);
 	    }
 	}
     },
@@ -246,10 +254,10 @@ VisualANN.core = (function () {
 	 * @returns {Neuron}
 	 */
 	this.activate = function (inputSum) {
-	    var now = new Date().getTime();
 	    this.inputSum = inputSum;
+	    	    document.dispatchEvent(activating);
+
 	    currentActivation = activationFunction(inputSum);
-	    document.dispatchEvent(activating);
 	};
 	/**
 	 * Get the current activation.
@@ -257,7 +265,7 @@ VisualANN.core = (function () {
 	 * @returns {number}
 	 */
 	this.getCurrentActivation = function () {
-	    return currentActivation || 0;
+	    return currentActivation || activationFunction(0);
 	};
 	this.getInputSum = function () {
 	    return this.inputSum;

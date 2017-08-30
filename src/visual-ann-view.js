@@ -11,23 +11,34 @@ VisualANN.view = (function () {
      * @returns {Canvas}
      */
     makeCanvas = function (div) {
-	var cvs = document.createElement('canvas');
+	var cvs = document.createElement('canvas'),
+	    ctx = cvs.getContext('2d');
 	cvs.setAttribute('height', div.clientHeight);
 	cvs.setAttribute('width', div.clientWidth);
 	document.addEventListener('activating', function (e) {
-	    paintNeuron(e.detail.neuron, cvs, null, true);
+	    paintNeuron(e.detail.neuron, ctx, null, true);
+	});
+	document.addEventListener('layeractivated', function (e) {
+	    setTimeout(function () {
+		paintSynapses(e.detail.network, ctx, e.detail.neurons);
+		setTimeout(function () {
+		    paintSynapses(e.detail.network, ctx, []);
+		}, 200);
+	    }, 600);
 	});
 	return cvs;
     },
+    message,
     neuronPositions = [],
-    paintNeuronActivation = function (neuron, canvas, radius,
+    paintNeuronActivation = function (neuron, ctx, radius,
 				      isActivating, activation) {
-	var ctx = canvas.getContext('2d'),
+	var act = activation || neuron.getCurrentActivation(),
+	    actDiff = neuron.getCurrentActivation() - act,
 	    pos = neuronPositions[neuron.getName()],
 	    r = pos.r,
 	    linGrad = ctx.createLinearGradient(
-		pos.x + r / 3, pos.y - r / 6,
-		pos.x + r / 3 + r / 10, pos.y - r / 6
+		pos.x, pos.y - r / 9,
+		pos.x + r / 10, pos.y - r / 9
 	    );
 	linGrad.addColorStop(0, '#888');
 	linGrad.addColorStop(0.3, '#fff');
@@ -35,43 +46,42 @@ VisualANN.view = (function () {
 	linGrad.addColorStop(1, '#888');
 	ctx.beginPath(); // Background for activation column
 	ctx.fillStyle = linGrad;
-	ctx.rect(pos.x + r / 3,
-		 pos.y - r / 6,
+	ctx.rect(pos.x,
+		 pos.y - r / 3,
 		 r / 10,
 		 r / 2);
 	ctx.fill();
 	ctx.fillStyle = '#60a060'; // Activation
-	ctx.fillRect(pos.x + r / 3,
-		     pos.y - activation * r / 2 + r / 3,
+	ctx.fillRect(pos.x,
+		     pos.y - act * r / 2 + r / 6,
 		     r / 10,
-		     activation * (r / 2));
-	if (isActivating || activation !== neuron.getCurrentActivation()) {
+		     act * (r / 2));
+
+	if (isActivating || Math.abs(actDiff) > 0.1) {
 	    setTimeout(function () {
 		paintNeuronActivation(
-		    neuron, canvas, radius, false,
-		    activation + ((neuron.getCurrentActivation() - activation) / 5));
-	    }, 10);
+		    neuron, ctx, radius, false,
+		    act + actDiff / 5);
+	    }, 50);
 	}
-	ctx.rect(pos.x + r / 3,
-		 pos.y - r / 6,
+	ctx.rect(pos.x,
+		 pos.y - r / 3,
 		 r / 10,
 		 r / 2);
 	ctx.stroke();
 	ctx.restore();	
     },
     /**
-     * Draw (or redraw) a neuron onto canvas.
+     * Draw (or redraw) a neuron on 2d context.
      * @param {Neuron} neuron - The neuron to (re)draw.
-     * @param {Canvas} canvas - A canvas to draw onto.
+     * @param {2DContext} ctx - A context to draw in.
      * @param {number} radius - The neuron radius to use.
      */
-    paintNeuron = function (neuron, canvas, radius, isActivating) {
-	var ctx = canvas.getContext('2d'),
-	    name = neuron.getName(),
+    paintNeuron = function (neuron, ctx, radius, isActivating) {
+	var name = neuron.getName(),
 	    inSum = neuron.getInputSum(),
 	    pos = neuronPositions[name],
 	    r = radius || pos.r,
-	    activation = neuron.getCurrentActivation(),
 	    margin = r * 0.3,
 	    fillGrad = ctx.createRadialGradient(
 		pos.x - margin, pos.y - margin , (r - margin) / 4,
@@ -94,10 +104,22 @@ VisualANN.view = (function () {
 	if (inSum != null) {
 	    ctx.fillStyle = '#606060';
 	    ctx.font = ''.concat(r / 12,'px Hack, Courier, Verdana');
-	    ctx.fillText(inSum.toFixed(2), pos.x - r / 2, pos.y + r / 50);
+	    ctx.fillText('-> '.concat(
+		inSum.toFixed(2)),
+			 pos.x - r + margin * 1.2,
+			 pos.y + r / 50);
 	}
-	// Current activation
-	paintNeuronActivation(neuron, canvas, radius, isActivating, activation);
+	// Output
+	if (inSum != null) {
+	    ctx.fillStyle = '#606060';
+	    ctx.font = ''.concat(r / 12,'px Hack, Courier, Verdana');
+	    ctx.fillText(''.concat(
+		neuron.getCurrentActivation().toFixed(2), ' ->'),
+			 pos.x + r - margin * 2.3,
+			 pos.y + r / 50);
+	}
+	// Animate activation change
+	paintNeuronActivation(neuron, ctx, radius, isActivating);
     },
     /**
      * @param {Network} network - The network to draw.
@@ -136,6 +158,12 @@ VisualANN.view = (function () {
 		};
 	    ctx.imageSmoothingEnabled = true;
 	    ctx.clearRect(0, 0, canvas.width, canvas.height);
+	    // Message on top
+	    if (this.message) {
+		ctx.fillStyle = '#606060';
+		ctx.font = '10px Hack, Courier, Verdana';
+		ctx.fillText(this.message, 10, 10);
+	    }
 	    // Calculate neuron positions
 	    neuronPositions = neurons.reduce(function (res, neuron) {
 		if (Object.keys(res.neuronPositions).length > 0) {
@@ -150,36 +178,62 @@ VisualANN.view = (function () {
 		return res;
 	    }, { neuronPositions: [] }).neuronPositions;
 	    // Draw synapses
-	    network.getSynapses().map(function (synapse) {
-		var from = neuronPositions[synapse
-					   .getFromNeuron()
-					   .getName()],
-		    to = neuronPositions[synapse
-					 .getToNeuron()
-					 .getName()],
-		    strength = synapse.getStrength();
-		ctx.beginPath();
-		ctx.moveTo(from.x, from.y);
-		ctx.lineTo(to.x, to.y);
-		ctx.save();
-		ctx.lineWidth = Math.abs(strength) / 2;
-		if (strength < 0) {
-		    ctx.setLineDash([4, 4]);
-		    ctx.lineDashOffset = 20;
-		}
-		ctx.strokeStyle = '#808080';
-		ctx.stroke();
-		ctx.restore();
-	    });
+	    paintSynapses(network, ctx);
 	    // Draw neurons
-	    neurons.map(function (neuron) {
-		paintNeuron(neuron, canvas);
-	    });
+	    //neurons.map(function (neuron) {
+	//	paintNeuron(neuron, ctx);
+	 //   });
 	}
+    },
+    // Draw synapses
+    paintSynapses = function (network, ctx, activeFromNeurons) {
+	network.getSynapses().map(function (synapse) {
+	    var actFrom = activeFromNeurons || [],
+		fromNeuron = synapse.getFromNeuron();
+	    paintSynapseActivity(
+		fromNeuron,
+		synapse.getToNeuron(),
+		synapse.getStrength(),
+		ctx,
+		actFrom.some(function (actFromNeuron) {
+		    return fromNeuron === actFromNeuron;
+		}));
+	});
+    },
+    paintSynapseActivity = function (from, to, strength, ctx, activity) {
+	var fromPos = neuronPositions[from.getName()],
+	    toPos = neuronPositions[to.getName()];
+	ctx.beginPath();
+	ctx.moveTo(fromPos.x, fromPos.y);
+	ctx.lineTo(toPos.x, toPos.y);
+	ctx.save();
+	if (activity) {
+	    ctx.lineWidth = Math.abs(strength);
+	    ctx.shadowBlur = 10;
+	    ctx.shadowColor = '#000000';
+	} else {
+	    ctx.lineWidth = Math.abs(strength) * 10;
+	    ctx.strokeStyle = '#ffffff';
+	    ctx.stroke();
+	}
+	if (strength < 0) {
+	    ctx.setLineDash([4, 4]);
+	    ctx.lineDashOffset = 20;
+	}
+	ctx.lineWidth = Math.abs(strength) / 2;
+	ctx.strokeStyle = '#808080';
+	ctx.stroke();
+	ctx.restore();
+	paintNeuron(from, ctx);
+	paintNeuron(to, ctx);
+    },
+    setMessage = function (message) {
+	this.message = message;
     };
     // Things to export.
     return {
 	makeCanvas: makeCanvas,
-	paint: paint
+	paint: paint,
+	setMessage: setMessage
     };
 }());
